@@ -18,8 +18,8 @@ def get_data(symbol, interval='1h', lookback='400'):
 
 
 def populate_dataframe(df):
-    df['rollhigh'] = df.High.rolling(15).max()  # rolling max over last 15 hours
-    df['rolllow'] = df.Low.rolling(15).min()  # rolling low over last 15 hours
+    df['rollhigh'] = df.High.rolling(20).max()  # rolling max over last 15 hours
+    df['rolllow'] = df.Low.rolling(20).min()  # rolling low over last 15 hours
     df['mid'] = (df.rollhigh + df.rolllow) / 2
     df['high_approach'] = np.where(df.Close > df.rollhigh * 0.996, 1, 0)  # -0.4%
     df['close_above_mid'] = np.where(df.Close > df.mid, 1, 0)
@@ -35,7 +35,7 @@ def entries_exits(df):
             if df.iloc[i].mid_cross:
                 buy_dates.append(df.iloc[i + 1].name)
                 in_position = True
-        if in_position:
+        if in_position:  # Sell
             if df.iloc[i].high_approach:
                 sell_dates.append(df.iloc[i + 1].name)
                 in_position = False
@@ -50,7 +50,27 @@ def visualize(df, buy_dates, sell_dates):
     plt.show()
 
 
+def calculate_profit():
+    trades_df = pd.DataFrame([buys, sells, dataframe.loc[buys].Open, dataframe.loc[sells].Open]).T
+    trades_df.columns = ['buy_datas', 'sell_dates', 'buy_prices', 'sell_prices']
+    trades_df.dropna(inplace=True)
+    trades_df['profit_rel'] = (trades_df.sell_prices - trades_df.buy_prices) / trades_df.buy_prices
+    trades_df['net_profit'] = trades_df.profit_rel - 0.0015
+
+    profit = (trades_df.profit_rel + 1).prod()
+    profit_fees = (trades_df.net_profit + 1).prod()
+
+    print(trades_df)
+    print(f"Profit/Loss before fees: {profit}")
+    print(f"Profit/Loss after fees: {profit_fees}")
+
+
 if __name__ == '__main__':
-    dataframe = get_data("BTCUSDT")
+    dataframe = get_data("BTCUSDT", interval='1h', lookback='1000')
     populate_dataframe(dataframe)
-    visualize(dataframe, entries_exits(dataframe)[0], entries_exits(dataframe)[1])
+    buys, sells = entries_exits(dataframe)
+    # visualize(dataframe, buys, sells)
+    calculate_profit()
+
+
+
