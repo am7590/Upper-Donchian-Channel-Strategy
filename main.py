@@ -25,6 +25,7 @@ def populate_dataframe(df):
     df['close_above_mid'] = np.where(df.Close > df.mid, 1, 0)
     df['mid_cross'] = df.close_above_mid.diff() == 1
 
+
 def entries_exits(df):
     in_position = False
     buy_dates, sell_dates = [], []
@@ -38,14 +39,18 @@ def entries_exits(df):
             if df.iloc[i].high_approach:
                 sell_dates.append(df.iloc[i + 1].name)
                 in_position = False
+    return buy_dates, sell_dates
 
-    print(buy_dates)
-    print(sell_dates)
+
+def visualize(df, buy_dates, sell_dates):
+    plt.plot(df[['Close', 'rollhigh', 'rolllow', 'mid']])
+    plt.scatter(buy_dates, df.loc[buy_dates].Open, marker='^', color='g', s=200)
+    plt.scatter(sell_dates, df.loc[sell_dates].Open, marker='v', color='r', s=200)
+    plt.style.use("dark_background")
+    plt.show()
 
 
 if __name__ == '__main__':
     dataframe = get_data("BTCUSDT")
     populate_dataframe(dataframe)
-    entries_exits(dataframe)
-
-
+    visualize(dataframe, entries_exits(dataframe)[0], entries_exits(dataframe)[1])
